@@ -1,2 +1,2 @@
 # TODOs
-- [ ] replace Joi w/Zod
+- [x] replace Joi w/Zod
