@@ -4,12 +4,12 @@ AMM Solver is a sample solver for the Near Intents protocol, implementing Automa
 
 ## Prerequisites
 
-- Node.js v20.18+ with NPM
+- Bun >= 1.3
 
 ## Installation
 
 ```bash
-npm install
+bun install
 ```
 
 ## Configuration
@@ -21,13 +21,13 @@ To use an environment file, copy the `env/.env.example` file, replacing "example
 > on Linux and MacOS:
 
 ```bash
-NODE_ENV=local npm start
+NODE_ENV=local bun start
 ```
 
 > on Windows:
 
 ```bat
-set NODE_ENV=local && npm start
+set NODE_ENV=local && bun start
 ```
 
 ### Required parameters
@@ -71,10 +71,10 @@ Install Near CLI RS tool if not yet installed:
 https://github.com/near/near-cli-rs/tree/main?tab=readme-ov-file#install
 ```
 
-Or run with npx:
+Or run with bunx:
 
 ```bash
-npx near-cli-rs
+bunx near-cli-rs
 ```
 
 Ensure the solver's Near account has sufficient funds in `AMM_TOKEN1_ID` and `AMM_TOKEN2_ID`.
@@ -84,7 +84,7 @@ For each token, deposit the desired amount to the Near Intents contract to form 
 > replace `token1.near`, `reseve_amount_1`, and `solver1.near` with your actual values below:
 
 ```bash
-npx near-cli-rs tokens solver1.near send-near solver1.near '1 yoctoNEAR' network-config mainnet sign-with-keychain send
+bunx near-cli-rs tokens solver1.near send-near solver1.near '1 yoctoNEAR' network-config mainnet sign-with-keychain send
 ```
 
 Register the solver's public key with the Near Intents contract:
@@ -92,7 +92,7 @@ Register the solver's public key with the Near Intents contract:
 > replace `ed25519:pUbl1kK37...` and `solver1.near` with your actual values below:
 
 ```bash
-npx near-cli-rs contract call-function as-transaction intents.near add_public_key json-args '{"public_key":"ed25519:pUbL1Ck3Y"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as solver1.near network-config mainnet sign-with-keychain send
+bunx near-cli-rs contract call-function as-transaction intents.near add_public_key json-args '{"public_key":"ed25519:pUbL1Ck3Y"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as solver1.near network-config mainnet sign-with-keychain send
 ```
 
 ## Running the app
@@ -100,13 +100,13 @@ npx near-cli-rs contract call-function as-transaction intents.near add_public_ke
 Normal mode:
 
 ```bash
-npm start
+bun start
 ```
 
 Development mode (with automatic reload):
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 TEE mode:
