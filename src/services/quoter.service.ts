@@ -49,7 +49,10 @@ export class QuoterService {
     ) {
       this.currentState = {
         reserves: reserves.reduce(
-          (m, reserve, i) => ((m[tokens[i]] = reserve), m),
+          (m, reserve, i) => {
+            m[tokens[i]] = reserve;
+            return m;
+          },
           {} as Record<string, string>,
         ),
         nonce: this.intentsService.generateDeterministicNonce(

@@ -17,7 +17,7 @@ export function loadEnv() {
     throw error;
   }
 
-  Object.entries(envVars).forEach(
-    ([key, value]) => (process.env[key] = `${value}`),
-  );
+  Object.entries(envVars).forEach(([key, value]) => {
+    process.env[key] = `${value}`;
+  });
 }
