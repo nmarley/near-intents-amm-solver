@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noThenProperty: This is fine b/c joi
 import * as Joi from 'joi';
 
 export const envVariablesValidationSchema = Joi.object({
