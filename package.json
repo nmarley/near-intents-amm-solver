@@ -21,14 +21,14 @@
     "borsher": "^3.5.0",
     "bs58": "^6.0.0",
     "dotenv": "^16.4.7",
-    "joi": "^17.13.3",
     "near-api-js": "^4.0.3",
     "near-seed-phrase": "^0.2.1",
     "near-units": "^0.1.9",
     "node-cache": "^5.1.2",
     "p-retry": "^7.0.0",
     "winston": "^3.3.3",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
