@@ -4,8 +4,8 @@
   "description": "AMM Solver is a sample solver for the Near Intents protocol, implementing Automated Market Maker functionality for a given pair of NEP-141 tokens.",
   "scripts": {
     "format": "bun --bun run biome check ./src ./test --write --unsafe",
-    "start": "node -r tsconfig-paths/register -r ts-node/register src/main.ts",
-    "dev": "node -r tsconfig-paths/register -r ts-node/register --watch src/main.ts",
+    "start": "bun run src/main.ts",
+    "dev": "bun run --watch src/main.ts",
     "lint": "format",
     "test": "bun test",
     "test:watch": "bun test --watch",
