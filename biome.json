@@ -1,0 +1,42 @@
+{
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/**",
+      "!public/**",
+      "!tsconfig*.json",
+      "!.claude/settings.local.json"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 4
+  },
+  "json": {
+    "formatter": {
+      "indentStyle": "space",
+      "indentWidth": 2
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "noNonNullAssertion": "off",
+        "useImportType": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off"
+      },
+      "a11y": {
+        "recommended": false
+      }
+    }
+  }
+}
