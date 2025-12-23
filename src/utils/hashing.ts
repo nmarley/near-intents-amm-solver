@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { BorshSchema, borshSerialize } from 'borsher';
 import { SignStandardEnum } from '../interfaces/intents.interface';
 
@@ -18,7 +18,8 @@ export function serializeIntent(
   nonce: string,
   standard: SignStandardEnum,
 ): Buffer {
-  if (!standardNumber[standard]) throw new Error(`Unsupported standard: ${standard}`);
+  if (!standardNumber[standard])
+    throw new Error(`Unsupported standard: ${standard}`);
   const payload = {
     message: intentMessage,
     nonce: Buffer.from(nonce, 'base64'),

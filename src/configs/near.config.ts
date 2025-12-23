@@ -1,7 +1,12 @@
 import { keyStores } from 'near-api-js';
-import { NearChainId, INearAccountConfig, INearConnectionConfig } from '../interfaces/near.interface';
+import {
+  INearAccountConfig,
+  INearConnectionConfig,
+  NearChainId,
+} from '../interfaces/near.interface';
 
-export const nearNetworkId = (process.env.NEAR_NETWORK_ID as NearChainId) || NearChainId.MAINNET;
+export const nearNetworkId =
+  (process.env.NEAR_NETWORK_ID as NearChainId) || NearChainId.MAINNET;
 
 export const nearDefaultConnectionConfigs = {
   [NearChainId.MAINNET]: {
@@ -25,10 +30,12 @@ export const nodeUrls = urlEnv
   ? urlEnv.split(',').map((url) => url.trim())
   : nearDefaultConnectionConfigs[nearNetworkId].nodeUrls;
 
-export const nearConnectionConfigs: INearConnectionConfig[] = nodeUrls.map((nodeUrl) => ({
-  ...nearDefaultConnectionConfigs[nearNetworkId],
-  nodeUrl,
-})) as INearConnectionConfig[];
+export const nearConnectionConfigs: INearConnectionConfig[] = nodeUrls.map(
+  (nodeUrl) => ({
+    ...nearDefaultConnectionConfigs[nearNetworkId],
+    nodeUrl,
+  }),
+) as INearConnectionConfig[];
 
 export const nearAccountConfig: INearAccountConfig = {
   accountId: process.env.NEAR_ACCOUNT_ID!,

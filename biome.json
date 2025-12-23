@@ -12,7 +12,7 @@
   },
   "formatter": {
     "indentStyle": "space",
-    "indentWidth": 4
+    "indentWidth": 2
   },
   "json": {
     "formatter": {

@@ -1,4 +1,4 @@
-import { inspect } from 'util';
+import { inspect } from 'node:util';
 import * as winston from 'winston';
 
 export enum LogLevel {
@@ -27,7 +27,10 @@ const rootLogger = winston.createLogger({
 export class LoggerService {
   private readonly winston: winston.Logger;
 
-  public constructor(public module?: string, public correlationId?: string) {
+  public constructor(
+    public module?: string,
+    public correlationId?: string,
+  ) {
     this.winston = rootLogger.child({ module, correlationId });
   }
 

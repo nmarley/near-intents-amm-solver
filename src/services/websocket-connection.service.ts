@@ -1,22 +1,22 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
+import { tokens } from '../configs/tokens.config';
+import { wsRelayUrl } from '../configs/websocket.config';
 import {
+  IJsonrpcEventNotification,
   IJsonrpcRelayRequest,
   IJsonrpcResponse,
-  IJsonrpcEventNotification,
+  IMetadata,
   IPublishedQuoteData,
   IQuoteRequestData,
   IQuoteResponseData,
   ISubscription,
-  RelayMethod,
   RelayEventKind,
-  IMetadata,
+  RelayMethod,
 } from '../interfaces/websocket.interface';
-import { tokens } from '../configs/tokens.config';
-import { wsRelayUrl } from '../configs/websocket.config';
+import { CacheService } from './cache.service';
 import { LoggerService } from './logger.service';
 import { QuoterService } from './quoter.service';
-import { CacheService } from './cache.service';
 
 export class WebsocketConnectionService {
   private wsConnection!: WebSocket;
@@ -25,11 +25,15 @@ export class WebsocketConnectionService {
   private requestCounter = 0;
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = Infinity;
-  private pendingRequests: Map<number, (response: IJsonrpcResponse) => void> = new Map();
+  private pendingRequests: Map<number, (response: IJsonrpcResponse) => void> =
+    new Map();
 
   private logger = new LoggerService('websocket');
 
-  public constructor(private readonly quoterService: QuoterService, private readonly cacheService: CacheService) {}
+  public constructor(
+    private readonly quoterService: QuoterService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   public start() {
     this.wsConnection = new WebSocket(wsRelayUrl);
@@ -47,8 +51,14 @@ export class WebsocketConnectionService {
     this.clearReconnectInterval();
   }
 
-  private async sendRequestToRelay<TResult = unknown>(method: RelayMethod, params: unknown[], logger: LoggerService) {
-    logger.debug(`Number of pending requests before send: ${this.pendingRequests.size}`);
+  private async sendRequestToRelay<TResult = unknown>(
+    method: RelayMethod,
+    params: unknown[],
+    logger: LoggerService,
+  ) {
+    logger.debug(
+      `Number of pending requests before send: ${this.pendingRequests.size}`,
+    );
     const request: IJsonrpcRelayRequest = {
       id: this.requestCounter++,
       jsonrpc: '2.0',
@@ -105,13 +115,17 @@ export class WebsocketConnectionService {
     if (!this.reconnectInterval) {
       this.reconnectInterval = setInterval(() => {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          logger.error('Maximum reconnect attempts reached. Could not reconnect to WebSocket server.');
+          logger.error(
+            'Maximum reconnect attempts reached. Could not reconnect to WebSocket server.',
+          );
           this.clearReconnectInterval();
           return;
         }
 
         this.reconnectAttempts++;
-        logger.info(`Attempting to reconnect... (attempt ${this.reconnectAttempts})`);
+        logger.info(
+          `Attempting to reconnect... (attempt ${this.reconnectAttempts})`,
+        );
         this.start();
       }, 5000);
     }
@@ -144,7 +158,11 @@ export class WebsocketConnectionService {
       }
       callback(req);
       this.pendingRequests.delete(req.id);
-    } else if ('method' in req && req.method === 'event' && typeof req?.params?.subscription === 'string') {
+    } else if (
+      'method' in req &&
+      req.method === 'event' &&
+      typeof req?.params?.subscription === 'string'
+    ) {
       // req is an event notification from the relay
       const subscriptionId = req.params.subscription;
       const subscription = this.subscriptions.get(subscriptionId);
@@ -155,13 +173,18 @@ export class WebsocketConnectionService {
 
       switch (subscription.eventKind) {
         case RelayEventKind.QUOTE:
-          this.processQuote(req.params.data as IQuoteRequestData, req.params.metadata as IMetadata);
+          this.processQuote(
+            req.params.data as IQuoteRequestData,
+            req.params.metadata as IMetadata,
+          );
           break;
         case RelayEventKind.QUOTE_STATUS:
           this.processQuoteStatus(req.params.data as IPublishedQuoteData);
           break;
         default:
-          logger.debug(`Unknown subscription event kind: ${subscription.eventKind}`);
+          logger.debug(
+            `Unknown subscription event kind: ${subscription.eventKind}`,
+          );
           return;
       }
     } else {
@@ -171,24 +194,46 @@ export class WebsocketConnectionService {
   }
 
   private async processQuote(quoteReq: IQuoteRequestData, metadata: IMetadata) {
-    const { quote_id, defuse_asset_identifier_in, defuse_asset_identifier_out } = quoteReq;
+    const {
+      quote_id,
+      defuse_asset_identifier_in,
+      defuse_asset_identifier_out,
+    } = quoteReq;
     const logger = this.logger.toScopeLogger(quote_id);
 
     try {
-      if (!this.isTokenPairSupported(defuse_asset_identifier_in, defuse_asset_identifier_out)) {
-        logger.debug(`Skipping unsupported pair (${defuse_asset_identifier_in} -> ${defuse_asset_identifier_out})`);
+      if (
+        !this.isTokenPairSupported(
+          defuse_asset_identifier_in,
+          defuse_asset_identifier_out,
+        )
+      ) {
+        logger.debug(
+          `Skipping unsupported pair (${defuse_asset_identifier_in} -> ${defuse_asset_identifier_out})`,
+        );
         return;
       }
 
-      logger.info(`Received supported quote request: ${JSON.stringify(quoteReq)}`);
+      logger.info(
+        `Received supported quote request: ${JSON.stringify(quoteReq)}`,
+      );
 
-      const quoteResp = await this.quoterService.getQuoteResponse(quoteReq, metadata);
+      const quoteResp = await this.quoterService.getQuoteResponse(
+        quoteReq,
+        metadata,
+      );
       if (!quoteResp) {
         return;
       }
 
-      const result = await this.sendRequestToRelay(RelayMethod.QUOTE_RESPONSE, [quoteResp], logger);
-      logger.info(`Sent quote response to relay, result: ${JSON.stringify(result)}`);
+      const result = await this.sendRequestToRelay(
+        RelayMethod.QUOTE_RESPONSE,
+        [quoteResp],
+        logger,
+      );
+      logger.info(
+        `Sent quote response to relay, result: ${JSON.stringify(result)}`,
+      );
     } catch (error) {
       logger.error(
         `Error while processing quote ${defuse_asset_identifier_in}->${defuse_asset_identifier_out}`,
@@ -205,13 +250,17 @@ export class WebsocketConnectionService {
     try {
       const quote = this.cacheService.get<IQuoteResponseData>(data.quote_hash);
       if (!quote) {
-        logger.debug(`Skipping intent for unknown quote hash '${data.quote_hash}'`);
+        logger.debug(
+          `Skipping intent for unknown quote hash '${data.quote_hash}'`,
+        );
         return;
       }
 
       const quoteLogger = logger.toScopeLogger(quote.quote_id);
 
-      quoteLogger.info(`Found own quote '${quote.quote_id}', updating the quoter state...`);
+      quoteLogger.info(
+        `Found own quote '${quote.quote_id}', updating the quoter state...`,
+      );
 
       await this.quoterService.updateCurrentState();
 
@@ -222,7 +271,11 @@ export class WebsocketConnectionService {
   }
 
   private async subscribe(eventKind: RelayEventKind, logger: LoggerService) {
-    const subscriptionId = await this.sendRequestToRelay(RelayMethod.SUBSCRIBE, [eventKind], logger);
+    const subscriptionId = await this.sendRequestToRelay(
+      RelayMethod.SUBSCRIBE,
+      [eventKind],
+      logger,
+    );
     logger.debug(`Got subscriptionId for '${eventKind}': ${subscriptionId}`);
     if (typeof subscriptionId !== 'string') {
       throw new Error(`Unexpected subscriptionId type`);

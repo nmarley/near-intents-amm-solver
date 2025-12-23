@@ -1,4 +1,7 @@
 export const intentsContract = process.env.INTENTS_CONTRACT || 'intents.near';
 export const solverRegistryContract = process.env.SOLVER_REGISTRY_CONTRACT;
 export const solverPoolId = process.env.SOLVER_POOL_ID;
-export const liquidityPoolContract = solverRegistryContract && solverPoolId ? `pool-${solverPoolId}.${solverRegistryContract}` : undefined;
+export const liquidityPoolContract =
+  solverRegistryContract && solverPoolId
+    ? `pool-${solverPoolId}.${solverRegistryContract}`
+    : undefined;

@@ -1,10 +1,19 @@
 import { Account, connect, KeyPair, Near } from 'near-api-js';
 import { KeyStore } from 'near-api-js/lib/key_stores';
-import { nearAccountConfig, nearConnectionConfigs, nearNetworkId, nodeUrls } from '../configs/near.config';
-import { LoggerService } from './logger.service';
-import { deriveWorkerAccount } from '../utils/agent';
-import { liquidityPoolContract, solverPoolId, solverRegistryContract } from 'src/configs/intents.config';
+import {
+  liquidityPoolContract,
+  solverPoolId,
+  solverRegistryContract,
+} from 'src/configs/intents.config';
 import { teeEnabled } from 'src/configs/tee.config';
+import {
+  nearAccountConfig,
+  nearConnectionConfigs,
+  nearNetworkId,
+  nodeUrls,
+} from '../configs/near.config';
+import { deriveWorkerAccount } from '../utils/agent';
+import { LoggerService } from './logger.service';
 
 export class NearService {
   private near!: Near;
@@ -29,19 +38,27 @@ export class NearService {
         throw new Error('SOLVER_POOL_ID is not defined');
       }
 
-      const { accountId, publicKey, secretKey: privateKey } = await deriveWorkerAccount();
+      const {
+        accountId,
+        publicKey,
+        secretKey: privateKey,
+      } = await deriveWorkerAccount();
       this.publicKey = publicKey;
       const keyPair = KeyPair.fromString(privateKey as `ed25519:${string}`);
       await this.keyStore.setKey(nearNetworkId, accountId, keyPair);
       this.account = await this.near.account(accountId);
 
       // Configure viewers for cross-checking view function results from multiple NEAR RPC nodes
-      this.viewers = await Promise.all(nearConnectionConfigs.map(async (config) => {
-        const near = await connect(config);
-        return near.account(accountId);
-      }));
+      this.viewers = await Promise.all(
+        nearConnectionConfigs.map(async (config) => {
+          const near = await connect(config);
+          return near.account(accountId);
+        }),
+      );
       if (this.viewers.length < 2) {
-        throw new Error('Not enough NEAR RPC nodes to cross-check view function results');
+        throw new Error(
+          'Not enough NEAR RPC nodes to cross-check view function results',
+        );
       }
     } else {
       if (!nearAccountConfig.accountId) {
@@ -51,8 +68,14 @@ export class NearService {
         throw new Error('NEAR_PRIVATE_KEY is not defined');
       }
 
-      const keyPair = KeyPair.fromString(nearAccountConfig.privateKey as `ed25519:${string}`);
-      await this.keyStore.setKey(nearNetworkId, nearAccountConfig.accountId, keyPair);
+      const keyPair = KeyPair.fromString(
+        nearAccountConfig.privateKey as `ed25519:${string}`,
+      );
+      await this.keyStore.setKey(
+        nearNetworkId,
+        nearAccountConfig.accountId,
+        keyPair,
+      );
       this.account = await this.near.account(nearAccountConfig.accountId);
     }
   }
@@ -81,7 +104,9 @@ export class NearService {
   }
 
   public async signMessage(message: Uint8Array) {
-    return (await this.keyStore.getKey(nearNetworkId, this.getAccountId())).sign(message);
+    return (
+      await this.keyStore.getKey(nearNetworkId, this.getAccountId())
+    ).sign(message);
   }
 
   /**
@@ -94,7 +119,11 @@ export class NearService {
       const { available } = await this.account.getAccountBalance();
       balance = available;
     } catch (e: unknown) {
-      if (e instanceof Error && 'type' in e && e.type === 'AccountDoesNotExist') {
+      if (
+        e instanceof Error &&
+        'type' in e &&
+        e.type === 'AccountDoesNotExist'
+      ) {
         // this.logger.info(e.type);
       } else {
         this.logger.error(e instanceof Error ? e.toString() : String(e));
@@ -108,18 +137,30 @@ export class NearService {
    * @param { contractId: string, methodName: string, args: object | undefined }
    * @returns validated view function result
    */
-  public async secureViewFunction(
-    { contractId, methodName, args }: { contractId: string, methodName: string, args?: object },
-  ) {
-    const results = await Promise.all(this.viewers.map(async (viewer) => {
-      return viewer.viewFunction({
-        contractId,
-        methodName,
-        args,
-      });
-    }));
+  public async secureViewFunction({
+    contractId,
+    methodName,
+    args,
+  }: {
+    contractId: string;
+    methodName: string;
+    args?: object;
+  }) {
+    const results = await Promise.all(
+      this.viewers.map(async (viewer) => {
+        return viewer.viewFunction({
+          contractId,
+          methodName,
+          args,
+        });
+      }),
+    );
     // Deeply compare the results
-    if (results.every((result) => JSON.stringify(result) === JSON.stringify(results[0]))) {
+    if (
+      results.every(
+        (result) => JSON.stringify(result) === JSON.stringify(results[0]),
+      )
+    ) {
       return results[0];
     }
     throw new Error('View function results mismatch');

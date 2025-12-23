@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+
 if (process.env.NODE_ENV !== 'production') {
   // will load for browser and backend
   dotenv.config({ path: './.env.development.local' });
@@ -6,14 +7,18 @@ if (process.env.NODE_ENV !== 'production') {
   // load .env in production
   dotenv.config();
 }
-import { generateSeedPhrase } from 'near-seed-phrase';
-import { PublicKey } from 'near-api-js/lib/utils';
-import { Account } from 'near-api-js';
-import { solverPoolId, solverRegistryContract } from '../configs/intents.config';
-import { DstackClient } from '@phala/dstack-sdk';
+
 import crypto from 'node:crypto';
+import { DstackClient } from '@phala/dstack-sdk';
+import { Account } from 'near-api-js';
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers';
+import { PublicKey } from 'near-api-js/lib/utils';
+import { generateSeedPhrase } from 'near-seed-phrase';
 import { NearService } from 'src/services/near.service';
+import {
+  solverPoolId,
+  solverRegistryContract,
+} from '../configs/intents.config';
 export interface Worker {
   pool_id: number;
   checksum: string;
@@ -59,11 +64,16 @@ export async function deriveWorkerAccount(hash?: Buffer | undefined) {
       const keyFromTee = (await client.getKey(randomString)).key;
       // hash of in-memory and TEE entropy
       hash = Buffer.from(
-        await crypto.subtle.digest('SHA-256', Buffer.concat([randomArray, keyFromTee.slice(0, 32)])),
+        await crypto.subtle.digest(
+          'SHA-256',
+          Buffer.concat([randomArray, keyFromTee.slice(0, 32)]),
+        ),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
-      console.error('WARNING: NOT RUNNING IN TEE. Generate an in-memory key pair.');
+    } catch (_e) {
+      console.error(
+        'WARNING: NOT RUNNING IN TEE. Generate an in-memory key pair.',
+      );
       // hash of in-memory ONLY
       hash = Buffer.from(await crypto.subtle.digest('SHA-256', randomArray));
     }
@@ -101,11 +111,16 @@ function createReportData(publicKey: string): Uint8Array {
 
   // Hash the public key with SHA3-384 and copy to report data
   const publicKeyBytes = PublicKey.from(publicKey).data;
-  const publicKeyHash = crypto.createHash('sha3-384').update(publicKeyBytes).digest();
+  const publicKeyHash = crypto
+    .createHash('sha3-384')
+    .update(publicKeyBytes)
+    .digest();
 
   // Verify hash length is exactly 48 bytes (SHA3-384 produces 384 bits = 48 bytes)
   if (publicKeyHash.length !== PUBLIC_KEYS_HASH_SIZE) {
-    throw new Error(`Expected SHA3-384 hash to be 48 bytes, but got ${publicKeyHash.length} bytes`);
+    throw new Error(
+      `Expected SHA3-384 hash to be 48 bytes, but got ${publicKeyHash.length} bytes`,
+    );
   }
 
   reportData.set(publicKeyHash, PUBLIC_KEYS_OFFSET);
@@ -114,10 +129,13 @@ function createReportData(publicKey: string): Uint8Array {
   return reportData;
 }
 
-export async function getQuote(client: DstackClient, reportData: string | Buffer | Uint8Array): Promise<{
-  quote_hex: string,
-  checksum: string,
-  quote_collateral: unknown
+export async function getQuote(
+  client: DstackClient,
+  reportData: string | Buffer | Uint8Array,
+): Promise<{
+  quote_hex: string;
+  checksum: string;
+  quote_collateral: unknown;
 }> {
   // get TDX quote
   const ra = await client.getQuote(reportData);
@@ -139,25 +157,34 @@ export async function getQuote(client: DstackClient, reportData: string | Buffer
     quote_hex,
     checksum: result.checksum,
     quote_collateral: result.quote_collateral,
-  }
+  };
 }
 
 /**
  * Registers a worker with the contract
  * @returns {Promise<FinalExecutionOutcome>} Result of the registration
  */
-export async function registerWorker(account: Account, publicKey: string): Promise<FinalExecutionOutcome> {
+export async function registerWorker(
+  account: Account,
+  publicKey: string,
+): Promise<FinalExecutionOutcome> {
   // get tcb_info from tappd
   const client = new DstackClient(endpoint);
   const tcb_info_obj = (await client.info()).tcb_info;
 
   // parse tcb_info
-  const tcb_info = typeof tcb_info_obj !== 'string' ? JSON.stringify(tcb_info_obj) : tcb_info_obj;
+  const tcb_info =
+    typeof tcb_info_obj !== 'string'
+      ? JSON.stringify(tcb_info_obj)
+      : tcb_info_obj;
 
   // Create report data for TEE attestation
   const reportData = createReportData(publicKey);
 
-  const { quote_hex, checksum, quote_collateral } = await getQuote(client, reportData);
+  const { quote_hex, checksum, quote_collateral } = await getQuote(
+    client,
+    reportData,
+  );
   const collateral = JSON.stringify(quote_collateral);
 
   // register the worker (returns bool)
@@ -171,7 +198,7 @@ export async function registerWorker(account: Account, publicKey: string): Promi
       checksum,
       tcb_info,
     },
-    attachedDeposit: BigInt(1),   // 1 yocto NEAR
+    attachedDeposit: BigInt(1), // 1 yocto NEAR
     gas: BigInt(300000000000000), // 300 Tgas
   });
 }
@@ -196,14 +223,19 @@ export async function pingRegistry(account: Account) {
   });
 }
 
-export async function getWorkerPingTimeoutMs(nearService: NearService): Promise<number> {
+export async function getWorkerPingTimeoutMs(
+  nearService: NearService,
+): Promise<number> {
   return nearService.secureViewFunction({
     contractId: solverRegistryContract!,
     methodName: 'get_worker_ping_timeout_ms',
   });
 }
 
-export async function getWorker(nearService: NearService, workerId: string): Promise<Worker | null> {
+export async function getWorker(
+  nearService: NearService,
+  workerId: string,
+): Promise<Worker | null> {
   return nearService.secureViewFunction({
     contractId: solverRegistryContract!,
     methodName: 'get_worker',
@@ -213,7 +245,10 @@ export async function getWorker(nearService: NearService, workerId: string): Pro
   });
 }
 
-export async function getPool(nearService: NearService, poolId: number): Promise<Pool | null> {
+export async function getPool(
+  nearService: NearService,
+  poolId: number,
+): Promise<Pool | null> {
   return nearService.secureViewFunction({
     contractId: solverRegistryContract!,
     methodName: 'get_pool',

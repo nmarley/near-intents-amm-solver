@@ -12,7 +12,12 @@ export class CacheService {
   }
 
   public mset(entries: Record<string, unknown>) {
-    this.cache.mset(Object.entries(entries).map(([key, value]) => ({ key, val: value })));
+    this.cache.mset(
+      Object.entries(entries).map(([key, value]) => ({
+        key,
+        val: value,
+      })),
+    );
   }
 
   public get<T = unknown>(key: string) {

@@ -1,24 +1,32 @@
 import Big from 'big.js';
 import bs58 from 'bs58';
-import { IMessage, SignStandardEnum } from '../interfaces/intents.interface';
-import { IMetadata, IQuoteRequestData, IQuoteResponseData } from '../interfaces/websocket.interface';
-import { CacheService } from './cache.service';
 import { intentsContract } from '../configs/intents.config';
-import { marginPercent, quoteDeadlineExtraMs, quoteDeadlineMaxMs } from '../configs/quoter.config';
+import {
+  marginPercent,
+  quoteDeadlineExtraMs,
+  quoteDeadlineMaxMs,
+} from '../configs/quoter.config';
 import { tokens } from '../configs/tokens.config';
-import { NearService } from './near.service';
-import { IntentsService } from './intents.service';
-import { LoggerService } from './logger.service';
+import { IMessage, SignStandardEnum } from '../interfaces/intents.interface';
+import {
+  IMetadata,
+  IQuoteRequestData,
+  IQuoteResponseData,
+} from '../interfaces/websocket.interface';
 import { serializeIntent } from '../utils/hashing';
 import { makeNonReentrant } from '../utils/make-nonreentrant';
+import { CacheService } from './cache.service';
+import { IntentsService } from './intents.service';
+import { LoggerService } from './logger.service';
+import { NearService } from './near.service';
 
 type State = {
   reserves: Record<string, string>;
   nonce: string;
 };
 
-const OneClickPartnerId = '1click';
-const RouterPartnerId = 'router-solver';
+const _OneClickPartnerId = '1click';
+const _RouterPartnerId = 'router-solver';
 
 export class QuoterService {
   private currentState?: State;
@@ -31,26 +39,22 @@ export class QuoterService {
     private readonly intentsService: IntentsService,
   ) {}
 
-  private isFrom1Click(logger: LoggerService, metadata?: IMetadata): boolean {
-    const partnerId = metadata?.partner_id;
-    const isTrustedPartner = partnerId !== undefined && [OneClickPartnerId, RouterPartnerId].includes(partnerId);
-
-    if (isTrustedPartner) {
-      logger.info('Request from 1click or router solver');
-
-      return true;
-    }
-
-    logger.info('Request is not from 1click or router solver');
-    return false;
-  }
-
   public updateCurrentState = makeNonReentrant(async () => {
     const reserves = await this.intentsService.getBalancesOnContract(tokens);
-    if (!this.currentState || !reserves.every((reserve, i) => reserve === this.currentState!.reserves[tokens[i]])) {
+    if (
+      !this.currentState ||
+      !reserves.every(
+        (reserve, i) => reserve === this.currentState!.reserves[tokens[i]],
+      )
+    ) {
       this.currentState = {
-        reserves: reserves.reduce((m, reserve, i) => ((m[tokens[i]] = reserve), m), {} as Record<string, string>),
-        nonce: this.intentsService.generateDeterministicNonce(`reserves:${reserves.join(':')}`),
+        reserves: reserves.reduce(
+          (m, reserve, i) => ((m[tokens[i]] = reserve), m),
+          {} as Record<string, string>,
+        ),
+        nonce: this.intentsService.generateDeterministicNonce(
+          `reserves:${reserves.join(':')}`,
+        ),
       };
     }
     this.logger.debug(`Current state: ${JSON.stringify(this.currentState)}`);
@@ -62,7 +66,9 @@ export class QuoterService {
   ): Promise<IQuoteResponseData | undefined> {
     const logger = this.logger.toScopeLogger(params.quote_id);
     if (params.min_deadline_ms > quoteDeadlineMaxMs) {
-      logger.info(`min_deadline_ms exceeds maximum allowed value: ${params.min_deadline_ms} > ${quoteDeadlineMaxMs}`);
+      logger.info(
+        `min_deadline_ms exceeds maximum allowed value: ${params.min_deadline_ms} > ${quoteDeadlineMaxMs}`,
+      );
       return;
     }
 
@@ -72,19 +78,25 @@ export class QuoterService {
       return;
     }
 
-    const oneClickOnly = process.env.ONE_CLICK_API_ONLY?.toLowerCase() === 'true';
+    const oneClickOnly =
+      process.env.ONE_CLICK_API_ONLY?.toLowerCase() === 'true';
     if (oneClickOnly && !isFrom1Click(logger, metadata)) {
       return;
     }
 
     const reserveIn = currentState.reserves[params.defuse_asset_identifier_in];
     if (!reserveIn) {
-      logger.error(`Reserve for token ${params.defuse_asset_identifier_in} not found`);
+      logger.error(
+        `Reserve for token ${params.defuse_asset_identifier_in} not found`,
+      );
       return;
     }
-    const reserveOut = currentState.reserves[params.defuse_asset_identifier_out];
+    const reserveOut =
+      currentState.reserves[params.defuse_asset_identifier_out];
     if (!reserveOut) {
-      logger.error(`Reserve for token ${params.defuse_asset_identifier_out} not found`);
+      logger.error(
+        `Reserve for token ${params.defuse_asset_identifier_out} not found`,
+      );
       return;
     }
 
@@ -103,7 +115,9 @@ export class QuoterService {
       return;
     }
 
-    const amountOut = params.exact_amount_out ? params.exact_amount_out : amount;
+    const amountOut = params.exact_amount_out
+      ? params.exact_amount_out
+      : amount;
 
     if (new Big(amountOut).gte(new Big(reserveOut))) {
       logger.error(
@@ -121,7 +135,9 @@ export class QuoterService {
         {
           intent: 'token_diff',
           diff: {
-            [params.defuse_asset_identifier_in]: params.exact_amount_in ? params.exact_amount_in : amount,
+            [params.defuse_asset_identifier_in]: params.exact_amount_in
+              ? params.exact_amount_in
+              : amount,
             [params.defuse_asset_identifier_out]: `-${params.exact_amount_out ? params.exact_amount_out : amount}`,
           },
         },
@@ -151,7 +167,11 @@ export class QuoterService {
       },
     };
 
-    this.cacheService.set(bs58.encode(quoteHash), quoteResp, quoteDeadlineMs / 1000);
+    this.cacheService.set(
+      bs58.encode(quoteHash),
+      quoteResp,
+      quoteDeadlineMs / 1000,
+    );
 
     return quoteResp;
   }
@@ -169,12 +189,22 @@ export class QuoterService {
     let amountStr = '0';
 
     if (amountIn) {
-      amountStr = getAmountOut(new Big(amountIn), new Big(reserveIn), new Big(reserveOut), marginPercent);
+      amountStr = getAmountOut(
+        new Big(amountIn),
+        new Big(reserveIn),
+        new Big(reserveOut),
+        marginPercent,
+      );
       logger.info(
         `Calculated quote result for ${tokenIn} / ${amountIn} -> ${tokenOut} = ${amountStr} with margin ${marginPercent}%`,
       );
     } else if (amountOut) {
-      amountStr = getAmountIn(new Big(amountOut), new Big(reserveIn), new Big(reserveOut), marginPercent);
+      amountStr = getAmountIn(
+        new Big(amountOut),
+        new Big(reserveIn),
+        new Big(reserveOut),
+        marginPercent,
+      );
       logger.info(
         `Calculated quote result for ${tokenIn} -> ${tokenOut} / ${amountOut} = ${amountStr} with margin ${marginPercent}%`,
       );
@@ -184,9 +214,15 @@ export class QuoterService {
   }
 }
 
-export function getAmountOut(amountIn: Big, reserveIn: Big, reserveOut: Big, marginPercent: number) {
+export function getAmountOut(
+  amountIn: Big,
+  reserveIn: Big,
+  reserveOut: Big,
+  marginPercent: number,
+) {
   if (amountIn.lte(0)) throw new Error('INSUFFICIENT_INPUT_AMOUNT');
-  if (reserveIn.lte(0) || reserveOut.lte(0)) throw new Error('INSUFFICIENT_LIQUIDITY');
+  if (reserveIn.lte(0) || reserveOut.lte(0))
+    throw new Error('INSUFFICIENT_LIQUIDITY');
   const marginBips = Math.floor(marginPercent * 100);
   const amountInWithFee = amountIn.mul(10000 - marginBips);
   const numerator = amountInWithFee.mul(reserveOut);
@@ -194,9 +230,15 @@ export function getAmountOut(amountIn: Big, reserveIn: Big, reserveOut: Big, mar
   return numerator.div(denominator).toFixed(0, Big.roundDown);
 }
 
-export function getAmountIn(amountOut: Big, reserveIn: Big, reserveOut: Big, marginPercent: number) {
+export function getAmountIn(
+  amountOut: Big,
+  reserveIn: Big,
+  reserveOut: Big,
+  marginPercent: number,
+) {
   if (amountOut.lte(0)) throw new Error('INSUFFICIENT_OUTPUT_AMOUNT');
-  if (reserveIn.lte(0) || reserveOut.lte(amountOut)) throw new Error('INSUFFICIENT_LIQUIDITY');
+  if (reserveIn.lte(0) || reserveOut.lte(amountOut))
+    throw new Error('INSUFFICIENT_LIQUIDITY');
   const marginBips = Math.floor(marginPercent * 100);
   const numerator = reserveIn.mul(amountOut).mul(10000);
   const denominator = reserveOut.sub(amountOut).mul(10000 - marginBips);

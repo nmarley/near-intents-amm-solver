@@ -1,4 +1,4 @@
-import { randomBytes, createHash } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { intentsContract } from '../configs/intents.config';
 import { NearService } from './near.service';
 
@@ -28,20 +28,10 @@ export class IntentsService {
     });
     const balances = result as string[];
     if (balances?.length !== tokenIds.length) {
-      throw new Error(`Expected to receive ${tokenIds.length} balances, but got ${balances?.length}`);
+      throw new Error(
+        `Expected to receive ${tokenIds.length} balances, but got ${balances?.length}`,
+      );
     }
     return balances;
-  }
-
-  private async isNonceUsed(nonce: string) {
-    const account = this.nearService.getAccount();
-    return await account.viewFunction({
-      contractId: intentsContract,
-      methodName: 'is_nonce_used',
-      args: {
-        account_id: this.nearService.getIntentsAccountId(),
-        nonce,
-      },
-    });
   }
 }
