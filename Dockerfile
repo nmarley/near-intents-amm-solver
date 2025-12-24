@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy dependency files
 COPY package.json bun.lock ./
 
-# Install production dependencies only
-RUN bun install --frozen-lockfile --production
+# Install production dependencies only (skip native build scripts)
+RUN bun install --frozen-lockfile --production --ignore-scripts
 
 # Stage 2: Build stage (if needed for dev dependencies)
 FROM oven/bun:1.3-alpine AS builder
@@ -17,8 +17,8 @@ WORKDIR /app
 # Copy dependency files
 COPY package.json bun.lock ./
 
-# Install all dependencies including dev dependencies
-RUN bun install --frozen-lockfile
+# Install all dependencies including dev dependencies (skip native build scripts)
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY . .
