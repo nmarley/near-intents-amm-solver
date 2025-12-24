@@ -1,34 +1,51 @@
-# Stage 1: Development with Dependencies
-FROM node:20-slim AS dev
-
-# Install Python and build-essential for node-gyp dependencies
-RUN apt-get update && \
-    apt-get install -y python3 build-essential && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    rm -rf /var/lib/apt/lists/*
+# Stage 1: Install dependencies
+FROM oven/bun:1.3-alpine AS deps
 
 WORKDIR /app
 
-# Install all dependencies
-COPY package*.json ./
-RUN npm ci
+# Copy dependency files
+COPY package.json bun.lock ./
 
-# Stage 2: Runtime Lightweight Image
-FROM node:20-slim AS runtime
+# Install production dependencies only
+RUN bun install --frozen-lockfile --production
+
+# Stage 2: Build stage (if needed for dev dependencies)
+FROM oven/bun:1.3-alpine AS builder
 
 WORKDIR /app
+
+# Copy dependency files
+COPY package.json bun.lock ./
+
+# Install all dependencies including dev dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Stage 3: Production runtime
+FROM oven/bun:1.3-alpine AS runtime
+
+WORKDIR /app
+
+# Set production environment
 ENV NODE_ENV=production
 
-# Set up a non-root user
-RUN groupmod -g 1001 node \
-    && usermod -u 1001 -g 1001 node
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S bunuser -u 1001
 
-# Copy installed dependencies and source code from the dev stage
-COPY --chown=node:node --from=dev /app/node_modules node_modules
-COPY --chown=node:node . .
+# Copy production dependencies from deps stage
+COPY --from=deps --chown=bunuser:nodejs /app/node_modules ./node_modules
 
-USER node
+# Copy source code
+COPY --chown=bunuser:nodejs . .
+
+# Switch to non-root user
+USER bunuser
+
+# Expose port (adjust if needed)
 EXPOSE 3000
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["bun", "run", "src/main.ts"]
