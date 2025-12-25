@@ -16,7 +16,10 @@ export function loadEnv() {
     );
 
     Object.entries(envVars).forEach(([key, value]) => {
-      process.env[key] = `${value}`;
+      // Don't set null or undefined values to avoid converting them to strings
+      if (value !== null && value !== undefined) {
+        process.env[key] = `${value}`;
+      }
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
