@@ -13,8 +13,8 @@ This document outlines the complete architecture for integrating Dash with NEAR 
          │
          ▼
 ┌─────────────────────────────────────────────────────────┐
-│              NEAR Intents Frontend                       │
-│  (User expresses intent: "Swap 10 DASH for USDT")      │
+│              NEAR Intents Frontend                      │
+│  (User expresses intent: "Swap 10 DASH for USDT")       │
 └────────┬────────────────────────────────────────────────┘
          │
          ▼
@@ -30,75 +30,75 @@ This document outlines the complete architecture for integrating Dash with NEAR 
           ▼
 ┌─────────────────────────────────────────────────────────┐
 │         YOUR AMM SOLVER (This Codebase)                 │
-│  ┌───────────────────────────────────────────────┐     │
-│  │ WebSocket Service                              │     │
-│  │  - Listens for quote requests                 │     │
-│  │  - Validates token pair matches config        │     │
-│  └──────────────┬─────────────────────────────────┘     │
-│                 │                                        │
-│                 ▼                                        │
-│  ┌───────────────────────────────────────────────┐     │
-│  │ Quoter Service (AMM Math)                     │     │
-│  │  1. Fetch reserves from NEAR Intents contract │     │
-│  │  2. Calculate swap quote:                     │     │
-│  │     AmountOut = (AmountIn × ReserveOut) /     │     │
-│  │                 (ReserveIn + AmountIn)        │     │
-│  │  3. Apply margin (0.3% fee)                   │     │
-│  │  4. Sign quote with NEP-413                   │     │
-│  └──────────────┬─────────────────────────────────┘     │
-│                 │                                        │
-│                 ▼                                        │
-│  ┌───────────────────────────────────────────────┐     │
-│  │ NEAR Service                                   │     │
-│  │  - RPC connection to NEAR blockchain          │     │
-│  │  - Signs transactions                          │     │
-│  │  - Queries token balances                      │     │
-│  └────────────────────────────────────────────────┘     │
-│                                                          │
+│  ┌───────────────────────────────────────────────┐      │
+│  │ WebSocket Service                             │      │
+│  │  - Listens for quote requests                 │      │
+│  │  - Validates token pair matches config        │      │
+│  └──────────────┬────────────────────────────────┘      │
+│                 │                                       │
+│                 ▼                                       │
+│  ┌───────────────────────────────────────────────┐      │
+│  │ Quoter Service (AMM Math)                     │      │
+│  │  1. Fetch reserves from NEAR Intents contract │      │
+│  │  2. Calculate swap quote:                     │      │
+│  │     AmountOut = (AmountIn × ReserveOut) /     │      │
+│  │                 (ReserveIn + AmountIn)        │      │
+│  │  3. Apply margin (0.3% fee)                   │      │
+│  │  4. Sign quote with NEP-413                   │      │
+│  └──────────────┬────────────────────────────────┘      │
+│                 │                                       │
+│                 ▼                                       │
+│  ┌───────────────────────────────────────────────┐      │
+│  │ NEAR Service                                  │      │
+│  │  - RPC connection to NEAR blockchain          │      │
+│  │  - Signs transactions                         │      │
+│  │  - Queries token balances                     │      │
+│  └───────────────────────────────────────────────┘      │
+│                                                         │
 │  Config: AMM_TOKEN1_ID=wdash.near                       │
-│          AMM_TOKEN2_ID=usdt.tether-token.near          │
-└──────────────────┬───────────────────────────────────────┘
+│          AMM_TOKEN2_ID=usdt.tether-token.near           │
+└──────────────────┬──────────────────────────────────────┘
                    │
                    │ RPC Calls
                    ▼
 ┌─────────────────────────────────────────────────────────┐
-│              NEAR Blockchain                             │
-│                                                          │
-│  ┌────────────────────────────────────────────────┐    │
-│  │   Intents Contract (intents.near)              │    │
-│  │   - Stores solver token reserves               │    │
-│  │   - Executes swaps when user accepts quote     │    │
-│  │   - Escrows user deposits                      │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                          │
-│  ┌────────────────────────────────────────────────┐    │
-│  │   wDASH Token Contract (wdash.near)            │    │
-│  │   - NEP-141 fungible token                     │    │
-│  │   - Represents locked DASH from bridge         │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                          │
-│  ┌────────────────────────────────────────────────┐    │
-│  │   USDT Token Contract (usdt.tether-token.near) │    │
-│  │   - NEP-141 fungible token                     │    │
-│  └────────────────────────────────────────────────┘    │
-└──────────────────┬───────────────────────────────────────┘
+│              NEAR Blockchain                            │
+│                                                         │
+│  ┌────────────────────────────────────────────────┐     │
+│  │   Intents Contract (intents.near)              │     │
+│  │   - Stores solver token reserves               │     │
+│  │   - Executes swaps when user accepts quote     │     │
+│  │   - Escrows user deposits                      │     │
+│  └────────────────────────────────────────────────┘     │
+│                                                         │
+│  ┌────────────────────────────────────────────────┐     │
+│  │   wDASH Token Contract (wdash.near)            │     │
+│  │   - NEP-141 fungible token                     │     │
+│  │   - Represents locked DASH from bridge         │     │
+│  └────────────────────────────────────────────────┘     │
+│                                                         │
+│  ┌────────────────────────────────────────────────┐     │
+│  │   USDT Token Contract (usdt.tether-token.near) │     │
+│  │   - NEP-141 fungible token                     │     │
+│  └────────────────────────────────────────────────┘     │
+└──────────────────┬──────────────────────────────────────┘
                    │
                    │ Bridge Events
                    ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Dash ↔ NEAR Bridge                          │
+│              Dash ↔ NEAR Bridge                         │
 │  - Monitors Dash blockchain for deposits                │
-│  - Mints wDASH on NEAR when DASH locked                │
+│  - Mints wDASH on NEAR when DASH locked                 │
 │  - Burns wDASH and releases DASH on withdrawals         │
-│  - Maintains 1:1 peg between DASH and wDASH            │
-└──────────────────┬───────────────────────────────────────┘
+│  - Maintains 1:1 peg between DASH and wDASH             │
+└──────────────────┬──────────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Dash Blockchain                             │
+│              Dash Blockchain                            │
 │  - User locks DASH in bridge contract                   │
 │  - Bridge releases DASH when wDASH burned               │
-└──────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Step-by-Step Flow: User Swaps DASH → USDT
